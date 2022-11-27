@@ -1,0 +1,40 @@
+# What
+
+This is a minimal set of software running with a stripped down Linux kernel to 
+provide a very basic operating system for the x86_64 architecture. Currently, it 
+boots to a stub init process which exits causing the kernel to panic.
+
+# Why
+
+Mostly for educational purposes. In order to understand what is needed to build 
+a basic Linux kernel and how it operates.
+
+# How
+
+See the Makefile. Basically, kernel sources are downloaded, verified and built 
+with a minimal configuration (make tinyconfig). This should, in theory, switch 
+off most non essential features in the kernel resulting in the smallest 
+possible kernel. Necessary features are switched on explicitly with an 
+architecture specific config file under kernel/. This produces a small compressed 
+Linux kernel image (~1MB).
+
+The tool source files are compiled as static ELF binaries and placed in a root 
+filesystem structure. This filesystem is archived and compressed with cpio and 
+gzip to provide an initramfs image. The image is unpacked and mounted as the 
+root filesystem by the kernel during boot.
+
+The kernel then runs /init as PID 1.
+
+Testing is done on a virtualized system using QEMU. QEMU has a built in 
+bootloader which can be provided with the compressed Linux kernel and initramfs 
+image.
+
+# Acknowledgements
+
+Heavily inspired by other, much better work:
+
+    linux from scratch          https://www.linuxfromscratch.org/lfs/
+    minimal linux live          https://github.com/ivandavidov/minimal
+    mkroot                      https://github.com/landley/mkroot
+    aboriginal linux            https://github.com/landley/aboriginal
+    tldr linux from scratch     https://github.com/comfies/tldrlfs
