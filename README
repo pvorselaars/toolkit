@@ -2,7 +2,7 @@
 
 This is a minimal set of software running with a stripped down Linux kernel to 
 provide a very basic operating system for the x86_64 architecture. Currently, it 
-boots to a stub init process which exits causing the kernel to panic.
+boots to a stub init process which executes a rudimentary shell.
 
 # Why
 
@@ -23,7 +23,8 @@ filesystem structure. This filesystem is archived and compressed with cpio and
 gzip to provide an initramfs image. The image is unpacked and mounted as the 
 root filesystem by the kernel during boot.
 
-The kernel then runs /init as PID 1.
+The kernel then runs /init as PID 1. Init forks and execs /bin/sh. This shell
+is able to take user input and will attempt to exec it.
 
 Testing is done on a virtualized system using QEMU. QEMU has a built in 
 bootloader which can be provided with the compressed Linux kernel and initramfs 
