@@ -45,12 +45,8 @@ char* read_line()   // Read characters from stdin to line buffer
 
     switch(c) {
       case '\\':                    // Escape character
-        if (escaped) {
-          buffer[position++] = c;
-          escaped = false;
-        } else {
-          escaped = true;
-        }
+        escaped = !escaped;
+        buffer[position++] = c;
         break;
 
       case '\n':                    // New line
@@ -155,6 +151,17 @@ char* get_token(char* input, char* delimiters)
     // Toggle quotation and skip quote character
     if (*input == '"') {
       quoted = !quoted;
+      input++;
+      continue;
+    }
+
+    // Escape next character
+    if (*input == '\\'){
+      // Remove '\' from input string
+      for(int i = 0; input[i] != '\0'; i++){
+        input[i] = input[i+1];
+      }
+      // Skip processing the character following the '\'
       input++;
       continue;
     }
