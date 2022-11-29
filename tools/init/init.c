@@ -17,8 +17,8 @@ void main(){
   switch(fork()){
     case 0:                                  // The child process
       char *argv[2] = { "/bin/sh", NULL };
-
-      if(execve(argv[0], argv, NULL) == -1){
+      char *env[]   = { "PWD=/", "HOME=/", NULL };
+      if(execve(argv[0], argv, env) == -1){
         fprintf(stderr, "init: error executing %s: %s\n", argv[0], strerror(errno));
         exit(1);
       }

@@ -5,10 +5,10 @@ COMMIT               = $(shell git log -n 1 --pretty=format:"%h@%cs")
 
 TOOLS                = init sh
 
-BUILD_DIR						 = build
-SOURCE_DIR					 = tools
+BUILD_DIR            = build
+SOURCE_DIR           = tools
 
-BINARIES  					 = $(foreach T, $(TOOLS), build/tools/$T)
+BINARIES             = $(foreach T, $(TOOLS), build/tools/$T)
 
 all: directories kernel build/initramfs/initramfs.cpio.gz
 
@@ -17,7 +17,7 @@ run: all
                       -no-reboot \
                       -kernel build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage \
                       -initrd build/initramfs/initramfs.cpio.gz \
-                      --append "panic=1 loglevel=0 console=ttyS0"
+                      --append "panic=1 loglevel=7 console=ttyS0"
 
 build/kernel/linux-$(KERNEL_VERSION).tar.xz: 
 	@echo --- Getting and verifying kernel source tarball

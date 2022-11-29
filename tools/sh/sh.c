@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -6,16 +8,26 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#include "sh.h"
+char* read_line();
+char** parse_line(char*);
+char* get_token(char*);
+int execute(char**);
 
-#define LINE_BUFFER_SIZE 64
+// builtin functions
+int cd(char**);
+int pwd(char**);
+int env(char**);
+int help(char**);
+int quit(char**);
+
 #define CMD_BUFFER_SIZE 8
 
+extern char** environ;
 static char* bin;
 
 char* read_line()   // Read characters from stdin to line buffer
 {
-  int buffer_size = LINE_BUFFER_SIZE;                   // Initial buf size
+  int buffer_size = _POSIX_MAX_CANON;                   // Initial buf size
   int position    = 0;
   char* buffer    = malloc(sizeof(char) * buffer_size); // Allocate buffer
   bool escaped    = false;                              // \ not used yet      
@@ -64,7 +76,7 @@ char* read_line()   // Read characters from stdin to line buffer
     }
 
     if (position >= buffer_size) {  // Dynamically resize line buffer
-      buffer_size += LINE_BUFFER_SIZE;
+      buffer_size += _POSIX_MAX_CANON;
       buffer = realloc(buffer, buffer_size);
 
       if(!buffer){
@@ -145,7 +157,159 @@ char* get_token(char* input)            // Get token from string
   return token;
 }
 
-int execute(char** args){
+typedef struct {
+  char* cmd;
+  int (*func)(char**);
+  char* params;
+  char* help;
+} builtin;
+
+builtin builtins[] = { { "cd", &cd, "[-] [DIR]", "change the current directory." },
+                       { "pwd", &pwd, NULL, "print the current/working directory." },
+                       { "env", &env, NULL, "print the environment variables." },
+                       { "help", &help, NULL, "print help information." },
+                       { "exit", &quit, "[EXITCODE]", "terminate process."} };
+
+int num_builtins()
+{
+  return sizeof(builtins) / sizeof(builtin);
+}
+
+int pwd(char** args)                   // pwd, print working directory
+{
+  // TODO: -P
+  char* pwd = getenv("PWD");
+  if(pwd){
+    printf("%s\n", getenv("PWD"));
+  }
+
+  return 1;
+}
+
+int cd(char** args)                                 // cd, change directory
+{
+
+  if (args[1] != NULL && *args[1] == '-') {
+    return (pwd(args));
+  }
+
+  int buffer_size = _POSIX_PATH_MAX;
+  char* dir = malloc(sizeof(char)* buffer_size);
+
+  if (args[1] == NULL) {                            // no directory argument given
+    char* HOME_PATH = getenv("HOME");               // change directory to $HOME if
+                                                    // it exists. Do nothing otherwise
+    if (HOME_PATH) {
+      while (strlen(HOME_PATH) > buffer_size) {
+        buffer_size += _POSIX_PATH_MAX;
+        dir = realloc(dir, buffer_size);
+
+        if(!dir){
+          perror(args[0]);
+          exit(1);
+        }
+      }
+      dir = strcpy(dir, HOME_PATH);
+    } else {
+      dir = '\0';
+    }
+
+  } else {
+
+    if (*args[1] != '/') {                          // directory argument is relative
+      char* PWD = getenv("PWD");
+      if (PWD) {
+        while (strlen(PWD) + strlen(args[1]) + 1 > buffer_size) {
+          buffer_size += _POSIX_PATH_MAX;
+          dir = realloc(dir, buffer_size);
+
+          if(!dir){
+            perror(args[0]);
+            exit(1);
+          }
+        }
+
+        dir = strcpy(dir, PWD);
+        if(PWD[strlen(PWD)-1] != '/'){
+          dir = strcat(dir,"/");
+        }
+        dir = strcat(dir,args[1]);
+
+      } else {
+        fprintf(stderr, "%s: $PWD is not set", args[0]);
+        free(dir);
+        return 1;
+      }
+    } else {                                        // directory argument is absolute
+      while (strlen(args[1]) > buffer_size) {
+        buffer_size += _POSIX_PATH_MAX;
+        dir = realloc(dir, buffer_size);
+
+        if(!dir){
+          perror(args[0]);
+          exit(1);
+        }
+      }
+      dir = strcpy(dir, args[1]);
+    }
+  }
+
+  if (chdir(dir) != 0) {                            // change directory and update PWD
+    perror(args[0]);
+  } else {
+    setenv("PWD", dir, 1);
+  }
+
+  free(dir);
+  return 1;
+}
+
+int env(char** args)
+{
+  for (int i = 0; environ[i] != NULL; i++) {
+    printf("%s\n", environ[i]);
+  }
+  return 1;
+}
+
+int quit(char** args)
+{
+  if (args[1] == NULL) {
+    exit(0);
+  } else {
+    int exitcode = atoi(args[1]);
+    if (exitcode){
+      exit(exitcode);
+    } else {
+      fprintf(stderr, "%s: illegal number %s", args[0], args[1]);
+    }
+  }
+  return 1;
+}
+
+int help(char** args)
+{
+  char* params;
+  for (int i = 0; i < num_builtins(); i++) {
+    params = (builtins[i].params) ? builtins[i].params : "\t";
+    printf("%s %s\t%s\n", builtins[i].cmd, params, builtins[i].help);
+  }
+  return 1;
+}
+
+
+int execute(char** args)
+{
+
+  if (args[0] == NULL) {
+    return 1;                           // No command entered
+  }
+
+  for (int i = 0; i < num_builtins(); i++){       // check for builtin functions
+    if (strcmp(args[0], builtins[i].cmd) == 0) {
+      return (*builtins[i].func)(args);
+    }
+  }
 
   pid_t pid = fork();
   int status;
@@ -169,11 +333,6 @@ int execute(char** args){
   return 1;
 }
 
-void help()
-{
-  printf("Ctrl+D to quit\n");
-}
-
 int main(int argc, char *argv[])
 {
   bin = argv[0];                        // name of the shell binary
@@ -181,7 +340,6 @@ int main(int argc, char *argv[])
   char** cmd;                           // the input string as token array
   int status;                           // exit code from command
 
-  help();
   do {
     printf("# ");                       // print the prompt
     fflush(stdout);
