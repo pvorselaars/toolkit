@@ -316,7 +316,7 @@ int quit(char** args)
     if (exitcode){
       exit(exitcode);
     } else {
-      fprintf(stderr, "%s: illegal number %s", args[0], args[1]);
+      fprintf(stderr, "%s: illegal number %s\n", args[0], args[1]);
     }
   }
   return 1;
