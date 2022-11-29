@@ -21,6 +21,7 @@ int help(char**);
 int quit(char**);
 
 #define CMD_BUFFER_SIZE 8
+#define PATH_BUFFER_SIZE 8
 #define DELIMITERS " \t\r\n\a"
 
 extern char** environ;
@@ -189,6 +190,7 @@ char* get_token(char* input, char* delimiters)
 
   // No further tokens found
   s = NULL;
+  token = *token == '\0' ? NULL : token;
   return token;
 }
 
@@ -289,13 +291,65 @@ int cd(char** args)                                 // cd, change directory
     }
   }
 
-  if (chdir(dir) != 0) {                            // change directory and update PWD
-    perror(args[0]);
+  // rewrite to canonical form
+  int path_buffer_size = PATH_BUFFER_SIZE;
+  char** parts = malloc(sizeof(char*) * path_buffer_size);
+  if (!parts) {
+    fprintf(stderr, "%s: %s: %s", bin, args[0], strerror(errno));
+  }
+
+  int position = 0;
+  char* part   = get_token(dir, "/");
+
+  while (part) {
+    if (strcmp(part, ".") == 0) { 
+      // ignore
+    } else if (strcmp(part, "..") == 0) {
+      // remove preceding part
+      if (position > 0) {
+        position--;
+        parts[position] = NULL;
+      }
+    } else {
+      // add part to part list for path
+      parts[position] = part;
+      position++;
+    }
+
+    if (position > path_buffer_size) {
+      path_buffer_size += PATH_BUFFER_SIZE;
+      parts = realloc(parts, path_buffer_size);
+
+      if(!parts){
+        perror(args[0]);
+        exit(1);
+      }
+    }
+
+    part = get_token(NULL, "/");
+  }
+  parts[position] = NULL;
+
+  char* path = malloc(sizeof(char)* buffer_size);
+  path[0] = '/';
+  for (int i = 0; parts[i] != NULL; i++){
+    strcat(path, parts[i]);
+    // Do not append the final /
+    if(i != position - 1){
+      strcat(path, "/");
+    }
+  }
+
+  // Attempt to change directory and update PWD on success
+  if (chdir(path) != 0) {
+    fprintf(stderr, "%s: can't cd into %s: %s\n", bin, path, strerror(errno));
   } else {
-    setenv("PWD", dir, 1);
+    setenv("PWD", path, 1);
   }
 
   free(dir);
+  free(path);
+  free(parts);
   return 1;
 }
 
