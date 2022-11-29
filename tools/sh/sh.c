@@ -11,6 +11,8 @@
 #define LINE_BUFFER_SIZE 64
 #define CMD_BUFFER_SIZE 8
 
+static char* bin;
+
 char* read_line()   // Read characters from stdin to line buffer
 {
   int buffer_size = LINE_BUFFER_SIZE;                   // Initial buf size
@@ -21,7 +23,7 @@ char* read_line()   // Read characters from stdin to line buffer
                                                         // is an integer
 
   if (!buffer) {    // Exit when buffer failed to allocate
-    perror("sh");
+    perror(bin);
     exit(1);
   }
 
@@ -66,7 +68,7 @@ char* read_line()   // Read characters from stdin to line buffer
       buffer = realloc(buffer, buffer_size);
 
       if(!buffer){
-        perror("sh");
+        perror(bin);
         exit(1);
       }
     }
@@ -81,7 +83,7 @@ char** parse_line(char* line)     // Parse line buffer to token array
   char *token;
 
   if (!cmd) {
-    perror("sh");
+    perror(bin);
     exit(1);
   }
 
@@ -94,7 +96,7 @@ char** parse_line(char* line)     // Parse line buffer to token array
       cmd = realloc(cmd, buffer_size);
 
       if(!cmd){
-        perror("sh");
+        perror(bin);
         exit(1);
       }
     }
@@ -150,12 +152,12 @@ int execute(char** args){
   switch (pid) {
     case 0:                             // Child process
       if(execvp(args[0], args) == -1){  // Execute the arg array with 
-        perror("sh");                   // with current environment
+        perror(bin);                    // with current environment
       }
       exit(1);
 
     case -1:                            // Something went wrong
-      perror("sh");
+      perror(bin);
 
     default:                            // Parent process
       do {                              // Wait on child process exit or termination
@@ -174,6 +176,7 @@ void help()
 
 int main(int argc, char *argv[])
 {
+  bin = argv[0];                        // name of the shell binary
   char* line;                           // the input string
   char** cmd;                           // the input string as token array
   int status;                           // exit code from command
