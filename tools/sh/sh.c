@@ -152,10 +152,17 @@ char* get_token(char* input, char* delimiters)
   // Loop through input string
   while (*input != '\0') {
 
+    // Toggle quotation and skip quote character
+    if (*input == '"') {
+      quoted = !quoted;
+      input++;
+      continue;
+    }
+
     // Compare with every delimiter
     delimiter = delimiters;
     while(*delimiter != '\0'){
-      if (*input == *delimiter){
+      if (*input == *delimiter && !quoted){
         // Terminate input string a delimiter
         *input = '\0';
         s = input+1;
