@@ -10,7 +10,7 @@
 
 char* read_line();
 char** parse_line(char*);
-char* get_token(char*);
+char* get_token(char*, char*);
 int execute(char**);
 
 // builtin functions
@@ -21,6 +21,7 @@ int help(char**);
 int quit(char**);
 
 #define CMD_BUFFER_SIZE 8
+#define DELIMITERS " \t\r\n\a"
 
 extern char** environ;
 static char* bin;
@@ -99,7 +100,7 @@ char** parse_line(char* line)     // Parse line buffer to token array
     exit(1);
   }
 
-  token = get_token(line);
+  token = get_token(line, DELIMITERS);
   while (token != NULL) {
     cmd[position++] = token;
 
@@ -113,47 +114,67 @@ char** parse_line(char* line)     // Parse line buffer to token array
       }
     }
 
-    token = get_token(NULL);
+    token = get_token(NULL, DELIMITERS);
   }
 
   cmd[position] = NULL;
   return cmd;
 }
 
-char* get_token(char* input)            // Get token from string
+
+// Get token from string
+char* get_token(char* input, char* delimiters)
 {
   bool quoted = false;                  // Ignore delimiter between quotes
   static char* s = NULL;                // Variable to remember the previous input
   char* token;                          // Pointer to the current token
+  char* delimiter;                      // Pointer to the delimiters
 
-  if (input == NULL) {                  // If no input is given, use the old input
+  // If no input is given, use the old input
+  if (input == NULL) {
     input = s;
   }
 
-  if (input == NULL) {                  // No further tokens
+  // No further tokens
+  if (input == NULL) {
     return NULL;
   }
 
-  if (*input == '\0') {                 // Terminate on an empty string
+  // Terminate on an empty string
+  if (*input == '\0') {
     s = NULL;
     return NULL;
   }
 
-  token = input;                        // Point token to start of input
-  for(int i = 0; input[i]!='\0'; i++){  // Scan input until null terminator
-    if (input[i] == '"' ) {             // When a quote is encountered:
-      quoted = !quoted;                 // ignore subsequent delimiters
-      continue;                         // until next quote
+  // Point to start of token
+  token = input;
+
+  // Loop through input string
+  while (*input != '\0') {
+
+    // Compare with every delimiter
+    delimiter = delimiters;
+    while(*delimiter != '\0'){
+      if (*input == *delimiter){
+        // Terminate input string a delimiter
+        *input = '\0';
+        s = input+1;
+
+        // Only return non empty tokens
+        if (*token == '\0') {
+          token++;
+        } else {
+          return token;
+        }
+      }
+      delimiter++;
     }
 
-    if ((input[i] == ' ' || \
-         input[i] == '\t') && !quoted) {
-      input[i] = '\0';                  // Terminate input at delimiter
-      s = &input[i+1];                  // Point old input to next character
-      return token;                     // Return the token
-    }
+    input++;
   }
-  s = NULL;                             // No further tokens to be found
+
+  // No further tokens found
+  s = NULL;
   return token;
 }
 
