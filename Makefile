@@ -3,19 +3,21 @@ KERNEL_VERSION_MAJOR = 6
 KERNEL_VERSION       = 6.0.9
 COMMIT               = $(shell git log -n 1 --pretty=format:"%h@%cs")
 
-TOOLS                = init sh
+TOOLS                = sh echo
 
 BUILD_DIR            = build
 SOURCE_DIR           = tools
+FS_DIR               = $(BUILD_DIR)/initramfs/fs
 
-BINARIES             = $(foreach T, $(TOOLS), build/tools/$T)
+INIT                 = $(BUILD_DIR)/init/init
+BINARIES             = $(foreach T, $(TOOLS), $(BUILD_DIR)/tools/$T)
 
-all: directories kernel build/initramfs/initramfs.cpio.gz
+all: initramfs kernel
 
 run: all
 	qemu-system-$(ARCH) -nographic \
                       -no-reboot \
-                      -kernel build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage \
+                      -kernel build/kernel/linux-${KERNEL_VERSION}/arch/$(ARCH)/boot/bzImage \
                       -initrd build/initramfs/initramfs.cpio.gz \
                       --append "panic=1 loglevel=7 console=ttyS0"
 
@@ -37,31 +39,37 @@ build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage: build/kernel/linux-$
 
 kernel: build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage
 
-build/initramfs/initramfs.cpio.gz: $(BINARIES)
-	@echo --- Building the root filesystem
-	mkdir -p build/initramfs/fs
-	cd build/initramfs/fs && \
-	mkdir -p bin etc
+initramfs: build/initramfs/initramfs.cpio.gz
 
-  # binaries
-	cp build/tools/init build/initramfs/fs/
-	cp build/tools/sh build/initramfs/fs/bin/
-
+build/initramfs/initramfs.cpio.gz: directories $(foreach T,$(TOOLS), $(FS_DIR)/bin/$T) $(FS_DIR)/init
 	@echo --- Compressing the root filesystem
-	cd build/initramfs/fs && \
-	find . | cpio -oH newc -R root:root | gzip > ../initramfs.cpio.gz
+	cd build/initramfs/fs;  find . | cpio -oH newc -R root:root | gzip > ../initramfs.cpio.gz
+
+$(FS_DIR)/bin/%: build/tools/%
+	cp $^ $@
+
+$(FS_DIR)/%: build/init/%
+	cp $^ $@
+
+build/init/%: tools/%/*.c
+	@echo --- Building $* from $^
+	$(CC) --static -g -DTOOLKIT_VERSION=\"$(COMMIT)\" -I$(dir $<) $^ -o $@
 
 build/tools/%: tools/%/*.c
 	@echo --- Building $* from $^
 	$(CC) --static -g -DTOOLKIT_VERSION=\"$(COMMIT)\" -I$(dir $<) $^ -o $@
 
 directories:
-	@mkdir -p build/tools
 	@mkdir -p build/kernel
+	@mkdir -p build/init
+	@mkdir -p build/tools
+	@mkdir -p build/initramfs/fs
+	@mkdir -p build/initramfs/fs/bin
 
 proper:
 	make -C build/kernel/linux-${KERNEL_VERSION} mrproper
 
 clean:
+	rm -r build/init
 	rm -r build/tools
 	rm -r build/initramfs
