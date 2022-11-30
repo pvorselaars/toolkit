@@ -32,7 +32,7 @@ int cd(char** args)                                 // cd, change directory
 
         if(!dir){
           perror(args[0]);
-          exit(1);
+          return 1;
         }
       }
       dir = strcpy(dir, HOME_PATH);
@@ -51,7 +51,7 @@ int cd(char** args)                                 // cd, change directory
 
           if(!dir){
             perror(args[0]);
-            exit(1);
+            return 1;
           }
         }
 
@@ -64,7 +64,7 @@ int cd(char** args)                                 // cd, change directory
       } else {
         fprintf(stderr, "%s: $PWD is not set", args[0]);
         free(dir);
-        return 1;
+        return 2;
       }
     } else {                                        // directory argument is absolute
       while (strlen(args[1]) > buffer_size) {
@@ -73,7 +73,7 @@ int cd(char** args)                                 // cd, change directory
 
         if(!dir){
           perror(args[0]);
-          exit(1);
+          return 1;
         }
       }
       dir = strcpy(dir, args[1]);
@@ -111,7 +111,7 @@ int cd(char** args)                                 // cd, change directory
 
       if(!parts){
         perror(args[0]);
-        exit(1);
+        return 1;
       }
     }
 
@@ -139,7 +139,7 @@ int cd(char** args)                                 // cd, change directory
   free(dir);
   free(path);
   free(parts);
-  return 1;
+  return 0;
 }
 
 int ls(char** args){
@@ -171,7 +171,7 @@ int ls(char** args){
 
       if (n == -1) {
         fprintf(stderr, "%s: can't list %s: %s\n", bin, path, strerror(errno));
-        return 1;
+        return 2;
       }
 
       for (int i = 0; i < n; i++) {
@@ -180,7 +180,7 @@ int ls(char** args){
 
         if (!fullpath) {
           fprintf(stderr, "%s: can't open %s: %s\n", bin, path, strerror(errno));
-          return 1;
+          return 3;
         }
 
         sprintf(fullpath, "%s/%s", path, list[i]->d_name);
@@ -217,7 +217,7 @@ int ls(char** args){
     printf("%s\n", path);
   }
 
-  return 1;
+  return 0;
 }
 
 // print the working directory
@@ -227,9 +227,12 @@ int pwd(char** args)
   char* pwd = getenv("PWD");
   if(pwd){
     printf("%s\n", getenv("PWD"));
+  } else {
+    puts("PWD not set.");
+    return 1;
   }
 
-  return 1;
+  return 0;
 }
 
 int env(char** args)
@@ -237,7 +240,7 @@ int env(char** args)
   for (int i = 0; environ[i] != NULL; i++) {
     printf("%s\n", environ[i]);
   }
-  return 1;
+  return 0;
 }
 
 int quit(char** args)
@@ -250,9 +253,9 @@ int quit(char** args)
       exit(exitcode);
     } else {
       fprintf(stderr, "%s: illegal number %s\n", args[0], args[1]);
+      return 1;
     }
   }
-  return 1;
 }
 
 int help(char** args)
@@ -262,5 +265,5 @@ int help(char** args)
     params = (builtins[i].params) ? builtins[i].params : "\t";
     printf("%s %s\t%s\n", builtins[i].cmd, params, builtins[i].help);
   }
-  return 1;
+  return 0;
 }

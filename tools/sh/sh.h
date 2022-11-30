@@ -9,6 +9,7 @@
 #include "parse.h"
 
 char* bin;
+int exitcode;
 int execute(char**);
 
 #endif

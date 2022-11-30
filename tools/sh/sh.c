@@ -3,11 +3,13 @@
 int execute(char** args)
 {
 
+  // no command entered
   if (args[0] == NULL) {
-    return 1;                           // No command entered
+    return 0;
   }
 
-  for (int i = 0; i < num_builtins(); i++){       // check for builtin functions
+  // check for builtin functions
+  for (int i = 0; i < num_builtins(); i++){
     if (strcmp(args[0], builtins[i].cmd) == 0) {
       return (*builtins[i].func)(args);
     }
@@ -16,43 +18,50 @@ int execute(char** args)
   pid_t pid = fork();
   int status;
   switch (pid) {
-    case 0:                             // Child process
-      if(execvp(args[0], args) == -1){  // Execute the arg array with 
-        perror(bin);                    // with current environment
+    // child process
+    case 0:
+      // Execute the arg array with the current environment
+      if(execvp(args[0], args) == -1){
+        perror(bin);
+        exit(errno);
       }
-      exit(1);
 
-    case -1:                            // Something went wrong
+    // Something went wrong
+    case -1:
       perror(bin);
+      return errno;
 
-    default:                            // Parent process
-      do {                              // Wait on child process exit or termination
+    // Parent process
+    default:
+      // Wait on child process to exit or be killed
+      do {
         waitpid(pid, &status, WUNTRACED);
       } while ( !WIFEXITED(status) && !WIFSIGNALED(status) );
 
+      if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+      }
+
   }
 
-  return 1;
 }
 
-int main(int argc, char *argv[])
+void main(int argc, char *argv[])
 {
   bin = argv[0];                        // name of the shell binary
   char* line;                           // the input string
   char** cmd;                           // the input string as token array
-  int status;                           // exit code from command
 
-  do {
+  while (1) {
     printf("# ");                       // print the prompt
     fflush(stdout);
 
-    line   = read_line();               // read from input
-    cmd    = parse_line(line);          // parse the input to a token array
-    status = execute(cmd);              // try to execute the token array
+    line     = read_line();               // read from input
+    cmd      = parse_line(line);          // parse the input to a token array
+    exitcode = execute(cmd);              // try to execute the token array
 
     free(line);
     free(cmd);
-  } while (status);
+  }
 
-  exit(0);
 }

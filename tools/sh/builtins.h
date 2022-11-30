@@ -32,7 +32,6 @@ int num_builtins();
 extern builtin builtins[];
 extern char** environ;
 
-// shell binary name
 extern char* bin;
 
 #endif
