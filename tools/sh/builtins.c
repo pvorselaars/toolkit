@@ -1,7 +1,8 @@
 #include "builtins.h"
 
-builtin builtins[] = { { "cd", &cd, "[-] [DIR]", "change the current directory." },
-                       { "pwd", &pwd, NULL, "print the current/working directory." },
+builtin builtins[] = { { "cd", &cd, "[-] [DIR]", "change the working directory." },
+                       { "ls", &ls, NULL, "list contents of the working directory." },
+                       { "pwd", &pwd, NULL, "print the working directory." },
                        { "env", &env, NULL, "print the environment variables." },
                        { "help", &help, NULL, "print help information." },
                        { "exit", &quit, "[EXITCODE]", "terminate process."} };
@@ -9,17 +10,6 @@ builtin builtins[] = { { "cd", &cd, "[-] [DIR]", "change the current directory."
 int num_builtins()
 {
   return sizeof(builtins) / sizeof(builtin);
-}
-
-int pwd(char** args)                   // pwd, print working directory
-{
-  // TODO: -P
-  char* pwd = getenv("PWD");
-  if(pwd){
-    printf("%s\n", getenv("PWD"));
-  }
-
-  return 1;
 }
 
 int cd(char** args)                                 // cd, change directory
@@ -149,6 +139,96 @@ int cd(char** args)                                 // cd, change directory
   free(dir);
   free(path);
   free(parts);
+  return 1;
+}
+
+int ls(char** args){
+
+  char* path;
+  DIR* dir;
+  struct dirent** list;
+  struct stat status;
+  int error;
+
+  if (args[1]){
+    path = args[1];
+  } else {
+    path = getenv("PWD");
+  }
+
+  error = stat(path, &status);
+  if (error) {
+    fprintf(stderr, "%s: can't determine type of %s: %s\n", bin, path, strerror(errno));
+    return 1;
+  }
+
+  if (S_ISDIR(status.st_mode)) {
+
+    dir = opendir(path);
+    if (dir) {
+
+      int n = scandir(path, &list, NULL, alphasort);
+
+      if (n == -1) {
+        fprintf(stderr, "%s: can't list %s: %s\n", bin, path, strerror(errno));
+        return 1;
+      }
+
+      for (int i = 0; i < n; i++) {
+
+        char* fullpath = malloc(sizeof(char*) * (strlen(path) + strlen(list[i]->d_name)));
+
+        if (!fullpath) {
+          fprintf(stderr, "%s: can't open %s: %s\n", bin, path, strerror(errno));
+          return 1;
+        }
+
+        sprintf(fullpath, "%s/%s", path, list[i]->d_name);
+
+        error = stat(fullpath, &status);
+        if (error) {
+          fprintf(stderr, "%s: can't get status of %s: %s\n", bin, fullpath, strerror(errno));
+        }
+
+        if (S_ISDIR(status.st_mode)) {
+          if (*list[i]->d_name != '.') {
+            printf("%s/\n", list[i]->d_name);
+          }
+        } else {
+          printf("%s\n", list[i]->d_name);
+        }
+
+        free(fullpath);
+        free(list[i]);
+
+      }
+
+      free(list);
+
+      closedir(dir);
+
+    } else {
+
+      fprintf(stderr, "%s: can't open %s: %s\n", bin, path, strerror(errno));
+
+    }
+
+  } else {
+    printf("%s\n", path);
+  }
+
+  return 1;
+}
+
+// print the working directory
+int pwd(char** args)
+{
+  // TODO: -P
+  char* pwd = getenv("PWD");
+  if(pwd){
+    printf("%s\n", getenv("PWD"));
+  }
+
   return 1;
 }
 
