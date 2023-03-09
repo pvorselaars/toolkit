@@ -30,6 +30,23 @@ Testing is done on a virtualized system using QEMU. QEMU has a built in
 bootloader which can be provided with the compressed Linux kernel and initramfs 
 image.
 
+# Dependencies
+
+The build process using the Makefile has the following dependencies:
+
+* make
+* tar
+* xz
+* flex
+* bison
+* gcc
+  
+Additionally the build process for the kernel requires:
+
+* Linux headers
+* ELF headers
+* bash
+
 # Acknowledgements
 
 Heavily inspired by other, much better work:
