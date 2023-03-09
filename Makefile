@@ -29,7 +29,7 @@ build/kernel/linux-$(KERNEL_VERSION).tar.xz:
 
 build/kernel/linux-$(KERNEL_VERSION)/: build/kernel/linux-$(KERNEL_VERSION).tar.xz
 	@echo --- Extracting kernel source tarball
-	tar -xf $(input) -C build/kernel --skip-old-files		
+	tar -xf $< -C build/kernel --skip-old-files		
 
 build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage: build/kernel/linux-$(KERNEL_VERSION)/
 	@echo --- Building kernel
