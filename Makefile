@@ -1,6 +1,6 @@
 ARCH                 = x86_64
 KERNEL_VERSION_MAJOR = 6
-KERNEL_VERSION       = 6.0.9
+KERNEL_VERSION       = 6.1.55
 COMMIT               = $(shell git log -n 1 --pretty=format:"%h@%cs")
 
 TOOLS                = sh echo
@@ -12,14 +12,20 @@ FS_DIR               = $(BUILD_DIR)/initramfs/fs
 INIT                 = $(BUILD_DIR)/init/init
 BINARIES             = $(foreach T, $(TOOLS), $(BUILD_DIR)/tools/$T)
 
-all: initramfs kernel
+efi: disk.img kernel initramfs
+	mcopy -oi disk.img build/kernel/linux-$(KERNEL_VERSION)/arch/x86/boot/bzImage ::EFI/BOOT/BOOTX64.EFI
+	mcopy -oi disk.img build/initramfs/initramfs.cpio.gz ::EFI/BOOT/INITRAMFS.CPIO.GZ
 
-run: all
+disk.img:
+	dd if=/dev/zero of=disk.img bs=1K count=2880
+	mformat -i disk.img -f 2880
+	mmd -oi disk.img EFI EFI/BOOT
+
+run: efi
 	qemu-system-$(ARCH) -nographic \
-                      -no-reboot \
-                      -kernel build/kernel/linux-${KERNEL_VERSION}/arch/$(ARCH)/boot/bzImage \
-                      -initrd build/initramfs/initramfs.cpio.gz \
-                      --append "panic=1 loglevel=7 console=ttyS0"
+			    -net none \
+			    -bios /usr/share/ovmf/bios.bin \
+			    -drive file=disk.img,format=raw 
 
 build/kernel/linux-$(KERNEL_VERSION).tar.xz: 
 	@echo --- Getting and verifying kernel source tarball
@@ -51,11 +57,11 @@ $(FS_DIR)/bin/%: build/tools/%
 $(FS_DIR)/%: build/init/%
 	cp $^ $@
 
-build/init/%: tools/%/*.c
+build/init/%: tools/%.c
 	@echo --- Building $* from $^
 	$(CC) --static -g -DTOOLKIT_VERSION=\"$(COMMIT)\" -I$(dir $<) $^ -o $@
 
-build/tools/%: tools/%/*.c
+build/tools/%: tools/%.c
 	@echo --- Building $* from $^
 	$(CC) --static -g -DTOOLKIT_VERSION=\"$(COMMIT)\" -I$(dir $<) $^ -o $@
 
