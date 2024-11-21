@@ -1,81 +1,56 @@
 ARCH                 = x86_64
 KERNEL_VERSION_MAJOR = 6
-KERNEL_VERSION       = 6.1.55
+KERNEL_VERSION       = 6.8.7
 COMMIT               = $(shell git log -n 1 --pretty=format:"%h@%cs")
 
-TOOLS                = sh echo
+TOOLS                = sh echo init
 
-BUILD_DIR            = build
-SOURCE_DIR           = tools
-FS_DIR               = $(BUILD_DIR)/initramfs/fs
+BUILD_DIR            = bin
+SOURCE_DIR           = src
 
-INIT                 = $(BUILD_DIR)/init/init
-BINARIES             = $(foreach T, $(TOOLS), $(BUILD_DIR)/tools/$T)
+BINARIES             = $(foreach T, $(TOOLS), $(BUILD_DIR)/$T)
 
-efi: disk.img kernel initramfs
-	mcopy -oi disk.img build/kernel/linux-$(KERNEL_VERSION)/arch/x86/boot/bzImage ::EFI/BOOT/BOOTX64.EFI
-	mcopy -oi disk.img build/initramfs/initramfs.cpio.gz ::EFI/BOOT/INITRAMFS.CPIO.GZ
+efi: disk.img linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage
+	mcopy -oi $^ ::EFI/BOOT/BOOTX64.EFI
 
 disk.img:
-	dd if=/dev/zero of=disk.img bs=1K count=2880
-	mformat -i disk.img -f 2880
+	dd if=/dev/zero of=disk.img bs=1K count=5760
+	mformat -i disk.img -h 4 -t 80 -s 36
 	mmd -oi disk.img EFI EFI/BOOT
 
 run: efi
-	qemu-system-$(ARCH) -nographic \
-			    -net none \
-			    -bios /usr/share/ovmf/bios.bin \
-			    -drive file=disk.img,format=raw 
+	qemu-system-$(ARCH) -net none \
+                      -nographic \
+                      -bios /usr/share/ovmf/OVMF.fd \
+                      -drive file=disk.img,format=raw
 
-build/kernel/linux-$(KERNEL_VERSION).tar.xz: 
-	@echo --- Getting and verifying kernel source tarball
-	wget -P build/kernel/ https://cdn.kernel.org/pub/linux/kernel/v$(KERNEL_VERSION_MAJOR).x/linux-$(KERNEL_VERSION).tar.xz
-	wget -P build/kernel/ https://cdn.kernel.org/pub/linux/kernel/v$(KERNEL_VERSION_MAJOR).x/linux-$(KERNEL_VERSION).tar.sign
-	cd build/kernel && xz -cd linux-$(KERNEL_VERSION).tar.xz | gpg --verify linux-$(KERNEL_VERSION).tar.sign -
+linux/linux-$(KERNEL_VERSION).tar.xz:
+	@echo --- Getting kernel source tarball
+	wget -P linux/ https://cdn.kernel.org/pub/linux/kernel/v$(KERNEL_VERSION_MAJOR).x/linux-$(KERNEL_VERSION).tar.xz
 
-build/kernel/linux-$(KERNEL_VERSION)/: build/kernel/linux-$(KERNEL_VERSION).tar.xz
+linux/linux-$(KERNEL_VERSION)/: linux/linux-$(KERNEL_VERSION).tar.xz
 	@echo --- Extracting kernel source tarball
-	tar -xf $< -C build/kernel --skip-old-files		
+	tar -xf $< -C linux --skip-old-files
 
-build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage: build/kernel/linux-$(KERNEL_VERSION)/
+linux/linux-$(KERNEL_VERSION)/.config: linux/$(ARCH).config
+	$(MAKE) -j8 -C linux/linux-${KERNEL_VERSION} ARCH=$(ARCH) tinyconfig KCONFIG_ALLCONFIG=../$(ARCH).config
+
+linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage: linux/linux-$(KERNEL_VERSION)/ linux/linux-$(KERNEL_VERSION)/.config initramfs $(BINARIES)
 	@echo --- Building kernel
-	cp kernel/$(ARCH).config $<
-	$(MAKE) -C $< ARCH=$(ARCH) tinyconfig KCONFIG_ALLCONFIG=$(ARCH).config
-	$(MAKE) -C $<
+	$(MAKE) -j8 -C $<
 
-kernel: build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage
-
-initramfs: build/initramfs/initramfs.cpio.gz
-
-build/initramfs/initramfs.cpio.gz: directories $(foreach T,$(TOOLS), $(FS_DIR)/bin/$T) $(FS_DIR)/init
-	@echo --- Compressing the root filesystem
-	cd build/initramfs/fs;  find . | cpio -oH newc -R root:root | gzip > ../initramfs.cpio.gz
-
-$(FS_DIR)/bin/%: build/tools/%
-	cp $^ $@
-
-$(FS_DIR)/%: build/init/%
-	cp $^ $@
-
-build/init/%: tools/%.c
-	@echo --- Building $* from $^
+${BUILD_DIR}/%: $(SOURCE_DIR)/%.c
+	@echo --- Building $@ from $^
+	@mkdir -p bin
 	$(CC) --static -g -DTOOLKIT_VERSION=\"$(COMMIT)\" -I$(dir $<) $^ -o $@
 
-build/tools/%: tools/%.c
-	@echo --- Building $* from $^
-	$(CC) --static -g -DTOOLKIT_VERSION=\"$(COMMIT)\" -I$(dir $<) $^ -o $@
+.PHONY: proper clean kernel
 
-directories:
-	@mkdir -p build/kernel
-	@mkdir -p build/init
-	@mkdir -p build/tools
-	@mkdir -p build/initramfs/fs
-	@mkdir -p build/initramfs/fs/bin
+kernel: linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage
 
 proper:
-	make -C build/kernel/linux-${KERNEL_VERSION} mrproper
+	make -C linux/linux-${KERNEL_VERSION} mrproper
 
 clean:
-	rm -r build/init
-	rm -r build/tools
-	rm -r build/initramfs
+	rm -r bin
+	rm disk.img
