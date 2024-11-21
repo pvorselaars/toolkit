@@ -2,14 +2,12 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <limits.h>
 #include <unistd.h>
-#include <sys/stat.h>
 
 #define CMD_BUFFER_SIZE 8
 #define PATH_BUFFER_SIZE 8
@@ -17,7 +15,6 @@
 
 // builtin functions
 int cd(char**);
-int ls(char**);
 int pwd(char**);
 int env(char**);
 int help(char**);
@@ -42,7 +39,6 @@ int exitcode;
 int execute(char**);
 
 builtin builtins[] = { { "cd", &cd, "[-] [DIR]", "change the working directory." },
-                       { "ls", &ls, NULL, "list contents of the working directory." },
                        { "pwd", &pwd, NULL, "print the working directory." },
                        { "env", &env, NULL, "print the environment variables." },
                        { "help", &help, NULL, "print help information." },
@@ -131,84 +127,6 @@ int cd(char** args)                                 // cd, change directory
   }
 
   free(dir);
-  return 0;
-}
-
-int ls(char** args){
-
-  char* path;
-  DIR* dir;
-  struct dirent** list;
-  struct stat status;
-  int error;
-
-  if (args[1]){
-    path = args[1];
-  } else {
-    path = getenv("PWD");
-  }
-
-  error = stat(path, &status);
-  if (error) {
-    fprintf(stderr, "%s: can't determine type of %s: %s\n", bin, path, strerror(errno));
-    return 1;
-  }
-
-  if (S_ISDIR(status.st_mode)) {
-
-    dir = opendir(path);
-    if (dir) {
-
-      int n = scandir(path, &list, NULL, alphasort);
-
-      if (n == -1) {
-        fprintf(stderr, "%s: can't list %s: %s\n", bin, path, strerror(errno));
-        return 2;
-      }
-
-      for (int i = 0; i < n; i++) {
-
-        char* fullpath = malloc(sizeof(char*) * (strlen(path) + strlen(list[i]->d_name)));
-
-        if (!fullpath) {
-          fprintf(stderr, "%s: can't open %s: %s\n", bin, path, strerror(errno));
-          return 3;
-        }
-
-        sprintf(fullpath, "%s/%s", path, list[i]->d_name);
-
-        error = stat(fullpath, &status);
-        if (error) {
-          fprintf(stderr, "%s: can't get status of %s: %s\n", bin, fullpath, strerror(errno));
-        }
-
-        if (S_ISDIR(status.st_mode)) {
-          if (*list[i]->d_name != '.') {
-            printf("%s/\n", list[i]->d_name);
-          }
-        } else {
-          printf("%s\n", list[i]->d_name);
-        }
-
-        free(fullpath);
-        free(list[i]);
-
-      }
-
-      free(list);
-
-      closedir(dir);
-
-    } else {
-
-      fprintf(stderr, "%s: can't open %s: %s\n", bin, path, strerror(errno));
-
-    }
-
-  } else {
-    printf("%s\n", path);
-  }
-
   return 0;
 }
 

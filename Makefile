@@ -3,7 +3,7 @@ KERNEL_VERSION_MAJOR = 6
 KERNEL_VERSION       = 6.8.7
 COMMIT               = $(shell git log -n 1 --pretty=format:"%h@%cs")
 
-TOOLS                = sh echo init
+TOOLS                = init sh echo ls cp
 
 BUILD_DIR            = bin
 SOURCE_DIR           = src
