@@ -10,6 +10,8 @@ SOURCE_DIR           = src
 
 BINARIES             = $(foreach T, $(TOOLS), $(BUILD_DIR)/$T)
 
+.PHONY: proper clean kernel efi qemu debug
+
 efi: disk.img linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage
 	mcopy -oi $^ ::EFI/BOOT/BOOTX64.EFI
 
@@ -20,6 +22,13 @@ disk.img:
 
 run: efi
 	qemu-system-$(ARCH) -net none \
+                      -nographic \
+                      -bios /usr/share/ovmf/OVMF.fd \
+                      -drive file=disk.img,format=raw
+
+debug: efi
+	qemu-system-$(ARCH) -net none \
+                      -S -s \
                       -nographic \
                       -bios /usr/share/ovmf/OVMF.fd \
                       -drive file=disk.img,format=raw
@@ -44,7 +53,6 @@ ${BUILD_DIR}/%: $(SOURCE_DIR)/%.c
 	@mkdir -p bin
 	$(CC) --static -g -DTOOLKIT_VERSION=\"$(COMMIT)\" -I$(dir $<) $^ -o $@
 
-.PHONY: proper clean kernel
 
 kernel: linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage
 
