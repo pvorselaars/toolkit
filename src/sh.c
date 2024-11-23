@@ -29,12 +29,14 @@ typedef struct {
 
 int num_builtins();
 
-char *read_line();
-char **parse_line(char *);
+void read_line(char *);
+void parse_line(char *, char **);
 char *get_token(char *, char *);
 
 extern char **environ;
 char *bin;
+char *line;			// the input string
+char **cmd;			// the input string as token array
 int exitcode;
 int execute(char **);
 
@@ -56,6 +58,7 @@ int cd(char **args)		// cd, change directory
 
 	char dir[_POSIX_PATH_MAX] = { 0 };
 	char path[_POSIX_PATH_MAX] = { 0 };
+	char *PWD = getenv("PWD");
 
 	if (args[1] == NULL) {
 		// no directory argument given
@@ -67,16 +70,18 @@ int cd(char **args)		// cd, change directory
 
 	} else {
 
-		if (*args[1] != '/') {
+		if (*args[1] == '-') {
+			char *OLDPWD = getenv("OLDPWD");
+			strncat(dir, OLDPWD, _POSIX_PATH_MAX - strlen(dir));
+			strncat(dir, "/", _POSIX_PATH_MAX - strlen(dir));
+		} else if (*args[1] != '/') {
 			// directory argument is relative to current working directory
-
-			char *PWD = getenv("PWD");
 
 			strncat(dir, PWD, _POSIX_PATH_MAX - strlen(dir));
 			strncat(dir, "/", _POSIX_PATH_MAX - strlen(dir));
+			strncat(dir, args[1], _POSIX_PATH_MAX - strlen(dir));
 		}
 
-		strncat(dir, args[1], _POSIX_PATH_MAX - strlen(dir));
 	}
 
 	// rewrite input to a valid path
@@ -106,19 +111,18 @@ int cd(char **args)		// cd, change directory
 
 			strncat(path, "/", _POSIX_PATH_MAX - strlen(path));
 			strncat(path, part, _POSIX_PATH_MAX - strlen(path));
-			printf("%s\n", part);
 
 		}
 
 		part = get_token(NULL, "/");
 	}
 
-	printf("%s\n", path);
 	// Attempt to change directory and update PWD on success
 	if (chdir(path) != 0) {
 		fprintf(stderr, "%s: %s: %s\n", bin, path, strerror(errno));
 		return 1;
 	} else {
+		setenv("OLDPWD", PWD, 1);
 		setenv("PWD", path, 1);
 	}
 
@@ -173,19 +177,12 @@ int help(char **args)
 	return 0;
 }
 
-char *read_line()		// Read characters from stdin to line buffer
+void read_line(char *buffer)	// Read characters from stdin to line buffer
 {
-	int buffer_size = _POSIX_MAX_CANON;	// Initial buf size
 	int position = 0;
-	char *buffer = malloc(sizeof(char) * buffer_size);	// Allocate buffer
 	bool escaped = false;	// \ not used yet
 	int c;			// Int because EOF
 	// is an integer
-
-	if (!buffer) {		// Exit when buffer failed to allocate
-		perror(bin);
-		exit(1);
-	}
 
 	for (;;) {
 		c = getchar();
@@ -199,7 +196,7 @@ char *read_line()		// Read characters from stdin to line buffer
 		case '\n':	// New line
 			if (!escaped) {
 				buffer[position] = '\0';	// Terminate line if not escaped
-				return buffer;
+				return;
 			} else {
 				escaped = false;
 			}
@@ -209,7 +206,6 @@ char *read_line()		// Read characters from stdin to line buffer
 			break;
 
 		case EOF:	// Kill shell with Ctrl+D
-			free(buffer);
 			exit(1);
 
 		default:	// Put character in line buffer
@@ -219,49 +215,26 @@ char *read_line()		// Read characters from stdin to line buffer
 
 		}
 
-		if (position >= buffer_size) {	// Dynamically resize line buffer
-			buffer_size += _POSIX_MAX_CANON;
-			buffer = realloc(buffer, buffer_size);
-
-			if (!buffer) {
-				perror(bin);
-				exit(1);
-			}
+		if (position > _POSIX_MAX_CANON) {
+			fprintf(stderr, "Input buffer overflow\n");
+			return;
 		}
 	}
 }
 
-char **parse_line(char *line)	// Parse line buffer to token array
+void parse_line(char *line, char **cmd)	// Parse line buffer to token array
 {
 	int position = 0;
-	int buffer_size = CMD_BUFFER_SIZE;
-	char **cmd = malloc(buffer_size * sizeof(char *));
 	char *token;
-
-	if (!cmd) {
-		perror(bin);
-		exit(1);
-	}
 
 	token = get_token(line, DELIMITERS);
 	while (token != NULL) {
 		cmd[position++] = token;
 
-		if (position >= buffer_size) {	// Dynamically resize token buffer
-			buffer_size += CMD_BUFFER_SIZE;
-			cmd = realloc(cmd, buffer_size);
-
-			if (!cmd) {
-				perror(bin);
-				exit(1);
-			}
-		}
-
 		token = get_token(NULL, DELIMITERS);
 	}
 
 	cmd[position] = NULL;
-	return cmd;
 }
 
 // Get token from string
@@ -378,16 +351,17 @@ int execute(char **args)
 
 void main(int argc, char *argv[])
 {
-	bin = argv[0];		// name of the shell binary
-	char *line;		// the input string
-	char **cmd;		// the input string as token array
+	bin = argv[0]; // name of the shell binary
+
+	char *line = malloc(_POSIX_MAX_CANON * sizeof(char));
+	char **cmd = malloc(_POSIX_MAX_CANON / 4 * sizeof(char *));
 
 	while (1) {
 		printf("# ");	// print the prompt
 		fflush(stdout);
 
-		line = read_line();	// read from input
-		cmd = parse_line(line);	// parse the input to a token array
+		read_line(line);	// read from input
+		parse_line(line, cmd);	// parse the input to a token array
 		exitcode = execute(cmd);	// try to execute the token array
 
 		free(line);
