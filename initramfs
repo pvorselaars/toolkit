@@ -1,6 +1,5 @@
 dir /dev 755 0 0
 dir /bin 755 1000 1000
-dir /home 777 1000 1000
 nod /dev/console 644 0 0 c 5 1
 file /init ../../bin/init 770 0 0
 file /bin/sh ../../bin/sh 771 0 0
