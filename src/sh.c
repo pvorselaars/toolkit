@@ -364,8 +364,8 @@ void main(int argc, char *argv[])
 		parse_line(line, cmd);	// parse the input to a token array
 		exitcode = execute(cmd);	// try to execute the token array
 
-		free(line);
-		free(cmd);
 	}
+	free(line);
+	free(cmd);
 
 }
