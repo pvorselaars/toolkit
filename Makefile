@@ -21,14 +21,12 @@ disk.img:
 	mmd -oi disk.img EFI EFI/BOOT
 
 run: efi
-	qemu-system-$(ARCH) -net none \
-                      -nographic \
+	qemu-system-$(ARCH) -nographic \
                       -bios /usr/share/ovmf/OVMF.fd \
                       -drive file=disk.img,format=raw
 
 debug: efi
-	qemu-system-$(ARCH) -net none \
-                      -S -s \
+	qemu-system-$(ARCH) -S -s \
                       -nographic \
                       -bios /usr/share/ovmf/OVMF.fd \
                       -drive file=disk.img,format=raw
@@ -60,5 +58,6 @@ proper:
 	make -C linux/linux-${KERNEL_VERSION} mrproper
 
 clean:
+	make -C linux/linux-${KERNEL_VERSION} clean
 	rm -r bin
 	rm disk.img

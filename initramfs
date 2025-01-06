@@ -1,4 +1,6 @@
 dir /dev 755 0 0
+dir /proc 755 0 0
+dir /sys 755 0 0
 dir /bin 755 1000 1000
 nod /dev/console 644 0 0 c 5 1
 file /init ../../bin/init 770 0 0
@@ -6,3 +8,4 @@ file /bin/sh ../../bin/sh 771 0 0
 file /bin/echo ../../bin/echo 771 0 0
 file /bin/ls ../../bin/ls 771 0 0
 file /bin/cp ../../bin/cp 771 0 0
+file /bin/busybox ../../../busybox/busybox 771 0 0
