@@ -349,14 +349,32 @@ int execute(char **args)
 
 }
 
-void run(const char filename)  {
+void run(const char *filename)  {
+
+	char *buf = NULL;
+	size_t len = 0;
+	ssize_t num_bytes;
+
+	char **cmd = malloc(_POSIX_MAX_CANON / 4 * sizeof(char *));
 
 	// open file name
+	FILE *f = fopen(filename, "r");
+
+	if (f == NULL) {
+		printf("Error: %s\n", strerror(errno));
+		free(cmd);
+		return;
+	}
 
 	// read file line by line
+	while((num_bytes = getline(&buf, &len, f)) != -1 ){
+		parse_line(buf, cmd);	    // parse the input to a token array
+		exitcode = execute(cmd);	// try to execute the token array
+	}
 	
-	// fork and exec each line
-
+	fclose(f);
+	free(buf);
+	free(cmd);
 	return;
 }
 
@@ -367,8 +385,9 @@ void main(int argc, char *argv[])
 	if (argc > 1) {
 		// interpret arguments as shell scripts to run
 
-		for (int script = 2; script < argc; script++) {
-			run(argv[script])
+		for (int script = 1; script < argc; script++) {
+			printf("Running %s\n", argv[script]);
+			run(argv[script]);
 		}
 
 		return;
