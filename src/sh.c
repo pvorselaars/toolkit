@@ -349,9 +349,30 @@ int execute(char **args)
 
 }
 
+void run(const char filename)  {
+
+	// open file name
+
+	// read file line by line
+	
+	// fork and exec each line
+
+	return;
+}
+
 void main(int argc, char *argv[])
 {
 	bin = argv[0]; // name of the shell binary
+
+	if (argc > 1) {
+		// interpret arguments as shell scripts to run
+
+		for (int script = 2; script < argc; script++) {
+			run(argv[script])
+		}
+
+		return;
+	}
 
 	char *line = malloc(_POSIX_MAX_CANON * sizeof(char));
 	char **cmd = malloc(_POSIX_MAX_CANON / 4 * sizeof(char *));
