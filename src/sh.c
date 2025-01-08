@@ -386,7 +386,6 @@ void main(int argc, char *argv[])
 		// interpret arguments as shell scripts to run
 
 		for (int script = 1; script < argc; script++) {
-			printf("Running %s\n", argv[script]);
 			run(argv[script]);
 		}
 
