@@ -42,7 +42,7 @@ linux/linux-$(KERNEL_VERSION)/: linux/linux-$(KERNEL_VERSION).tar.xz
 linux/linux-$(KERNEL_VERSION)/.config: linux/$(ARCH).config
 	$(MAKE) -j8 -C linux/linux-${KERNEL_VERSION} ARCH=$(ARCH) tinyconfig KCONFIG_ALLCONFIG=../$(ARCH).config
 
-linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage: linux/linux-$(KERNEL_VERSION)/ linux/linux-$(KERNEL_VERSION)/.config initramfs $(BINARIES)
+linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage: linux/linux-$(KERNEL_VERSION)/ linux/linux-$(KERNEL_VERSION)/.config etc/initramfs $(BINARIES)
 	@echo --- Building kernel
 	$(MAKE) -j8 -C $<
 
