@@ -1,2 +1,0 @@
-busybox mount -t proc proc /proc
-busybox mount -t devtmpfs none /dev
