@@ -15,8 +15,8 @@ See the Makefile. Basically, kernel sources are downloaded, verified and built
 with a minimal configuration (make tinyconfig). This should, in theory, switch 
 off most non essential features in the kernel resulting in the smallest 
 possible kernel. Necessary features are switched on explicitly with an 
-architecture specific config file under kernel/. This produces a small compressed 
-Linux kernel image (~1MB).
+architecture specific config file under linux/. This produces a small compressed 
+Linux kernel image (~2MB).
 
 The tool source files are compiled as static ELF binaries and placed in a root 
 filesystem structure. This filesystem is archived and compressed with cpio and 
