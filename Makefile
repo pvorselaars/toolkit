@@ -3,7 +3,7 @@ KERNEL_VERSION_MAJOR = 6
 KERNEL_VERSION       = 6.8.7
 COMMIT               = $(shell git log -n 1 --pretty=format:"%h@%cs")
 
-TOOLS                = init sh echo ls cp
+TOOLS                = init sh echo ls cp mount
 
 BUILD_DIR            = bin
 SOURCE_DIR           = src
@@ -42,7 +42,7 @@ linux/linux-$(KERNEL_VERSION)/: linux/linux-$(KERNEL_VERSION).tar.xz
 linux/linux-$(KERNEL_VERSION)/.config: linux/$(ARCH).config
 	$(MAKE) -j8 -C linux/linux-${KERNEL_VERSION} ARCH=$(ARCH) tinyconfig KCONFIG_ALLCONFIG=../$(ARCH).config
 
-linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage: linux/linux-$(KERNEL_VERSION)/ linux/linux-$(KERNEL_VERSION)/.config etc/initramfs $(BINARIES)
+linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage: linux/linux-$(KERNEL_VERSION)/ linux/linux-$(KERNEL_VERSION)/.config etc/initramfs $(BINARIES) etc/rc
 	@echo --- Building kernel
 	$(MAKE) -j8 -C $<
 

@@ -1,0 +1,2 @@
+mount devtmpfs /dev /dev
+mount proc /proc /proc

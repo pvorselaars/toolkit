@@ -8,4 +8,6 @@ file /bin/sh ../../bin/sh 771 0 0
 file /bin/echo ../../bin/echo 771 0 0
 file /bin/ls ../../bin/ls 771 0 0
 file /bin/cp ../../bin/cp 771 0 0
+file /bin/mount ../../bin/mount 771 0 0
+
 file /etc/rc ../../etc/rc 771 0 0
