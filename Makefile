@@ -21,13 +21,13 @@ disk.img:
 	mmd -oi disk.img EFI EFI/BOOT
 
 run: efi
-	qemu-system-$(ARCH) -nographic \
+	qemu-system-$(ARCH) -serial stdio \
                       -bios /usr/share/ovmf/OVMF.fd \
                       -drive file=disk.img,format=raw
 
 debug: efi
 	qemu-system-$(ARCH) -S -s \
-                      -nographic \
+                      -serial stdio \
                       -bios /usr/share/ovmf/OVMF.fd \
                       -drive file=disk.img,format=raw
 
