@@ -1,7 +1,6 @@
 ARCH                 = x86_64
 KERNEL_VERSION_MAJOR = 6
-KERNEL_VERSION       = 6.8.7
-COMMIT               = $(shell git log -n 1 --pretty=format:"%h@%cs")
+KERNEL_VERSION       = 6.12
 
 TOOLS                = init sh echo ls cp mount cat
 
@@ -12,7 +11,7 @@ BINARIES             = $(foreach T, $(TOOLS), $(BUILD_DIR)/$T)
 
 .PHONY: proper clean kernel efi qemu debug
 
-efi: disk.img linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage
+efi: disk.img kernel/linux/arch/x86/boot/bzImage
 	mcopy -oi $^ ::EFI/BOOT/BOOTX64.EFI
 
 disk.img:
@@ -21,43 +20,32 @@ disk.img:
 	mmd -oi disk.img EFI EFI/BOOT
 
 run: efi
-	qemu-system-$(ARCH) -serial stdio \
-                      -bios /usr/share/ovmf/OVMF.fd \
-                      -drive file=disk.img,format=raw
+	qemu-system-$(ARCH) -serial stdio -bios /usr/share/ovmf/OVMF.fd -hda disk.img
 
 debug: efi
-	qemu-system-$(ARCH) -S -s \
-                      -serial stdio \
-                      -bios /usr/share/ovmf/OVMF.fd \
-                      -drive file=disk.img,format=raw
+	qemu-system-$(ARCH) -S -s -serial stdio -bios /usr/share/ovmf/OVMF.fd -hda disk.img
 
-linux/linux-$(KERNEL_VERSION).tar.xz:
-	@echo --- Getting kernel source tarball
-	wget -P linux/ https://cdn.kernel.org/pub/linux/kernel/v$(KERNEL_VERSION_MAJOR).x/linux-$(KERNEL_VERSION).tar.xz
+kernel/linux-$(KERNEL_VERSION).tar.xz:
+	wget -P kernel/ https://cdn.kernel.org/pub/linux/kernel/v$(KERNEL_VERSION_MAJOR).x/linux-$(KERNEL_VERSION).tar.xz
 
-linux/linux-$(KERNEL_VERSION)/: linux/linux-$(KERNEL_VERSION).tar.xz
-	@echo --- Extracting kernel source tarball
-	tar -xf $< -C linux --skip-old-files
+kernel/linux/: kernel/linux-$(KERNEL_VERSION).tar.xz
+	tar -xf $< -C kernel --skip-old-files
+	mv kernel/linux-$(KERNEL_VERSION) kernel/linux
 
-linux/linux-$(KERNEL_VERSION)/.config: linux/$(ARCH).config
-	$(MAKE) -j8 -C linux/linux-${KERNEL_VERSION} ARCH=$(ARCH) tinyconfig KCONFIG_ALLCONFIG=../$(ARCH).config
+kernel/linux/.config: kernel/$(ARCH).config
+	$(MAKE) -j8 -C kernel/linux ARCH=$(ARCH) tinyconfig KCONFIG_ALLCONFIG=../$(ARCH).config
 
-linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage: linux/linux-$(KERNEL_VERSION)/ linux/linux-$(KERNEL_VERSION)/.config etc/initramfs $(BINARIES) etc/rc
-	@echo --- Building kernel
-	$(MAKE) -j8 -C $<
+kernel/linux/arch/x86/boot/bzImage: kernel/linux/ kernel/linux/.config etc/initramfs $(BINARIES) etc/rc
+	$(MAKE) -j4 -C $<
 
 ${BUILD_DIR}/%: $(SOURCE_DIR)/%.c
-	@echo --- Building $@ from $^
 	@mkdir -p bin
-	$(CC) --static -g -DTOOLKIT_VERSION=\"$(COMMIT)\" -I$(dir $<) $^ -o $@
-
-
-kernel: linux/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage
+	$(CC) --static -g $^ -o $@
 
 proper:
-	make -C linux/linux-${KERNEL_VERSION} mrproper
+	make -C kernel/linux mrproper
 
 clean:
-	make -C linux/linux-${KERNEL_VERSION} clean
+	make -C kernel/linux clean
 	rm -r bin
 	rm disk.img
