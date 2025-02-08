@@ -389,7 +389,6 @@ void main(int argc, char *argv[])
 			run(argv[script]);
 		}
 
-		return;
 	}
 
 	char *line = malloc(_POSIX_MAX_CANON * sizeof(char));
