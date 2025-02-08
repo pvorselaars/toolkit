@@ -1,14 +1,6 @@
-#include <stdio.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-
-#ifndef BUFFER_SIZE
-#define BUFFER_SIZE 1024
-#endif
 
 int main(int argc, char* argv[]){
 
@@ -16,50 +8,37 @@ int main(int argc, char* argv[]){
   struct stat fs;
   ssize_t n;
 
-  char buffer[BUFFER_SIZE];
+  char buffer[1024];
 
-  if (argc != 3 || !strcmp(argv[1], "--help")) {
-    fprintf(stderr,"%s src dest\n", argv[0]);
-    exit(EXIT_FAILURE);
+  if (argc != 3) {
+    return -1;
   }
 
   src = open(argv[1], O_RDONLY);
 
   if (src == -1){
-    fprintf(stderr,"%s: %s, %s\n", argv[0], argv[1], strerror(errno));
-    exit(EXIT_FAILURE);
+    return -1;
   }
 
-  if(stat(argv[1], &fs) == -1){
-    fprintf(stderr,"%s: %s, %s\n", argv[0], argv[1], strerror(errno));
-    exit(EXIT_FAILURE);
+  if(fstatat(src, 0, &fs, AT_EMPTY_PATH) == -1){
+    return -1;
   }
 
   dst = open(argv[2], O_CREAT | O_WRONLY | O_TRUNC, fs.st_mode);
 
-  if (src == -1){
-    fprintf(stderr,"%s: %s, %s\n", argv[0], argv[2], strerror(errno));
-    exit(EXIT_FAILURE);
+  if (dst == -1){
+    return -1;
   }
 
-  while ((n = read(src, buffer, BUFFER_SIZE)) > 0)
+  while ((n = read(src, buffer, 1024)) > 0) {
     if (write(dst, buffer, n) != n){
-      fprintf(stderr,"%s: %s\n", argv[0], strerror(errno));
-      exit(EXIT_FAILURE);
+      return -1;
     }
-
-  if (n == -1){
-    fprintf(stderr,"%s: %s, %s\n", argv[0], argv[1], strerror(errno));
-    exit(EXIT_FAILURE);
-  }
-  
-  if (close(src) == -1) {
-    fprintf(stderr,"%s: %s, %s\n", argv[0], argv[1], strerror(errno));
   }
 
-  if (close(dst) == -1) {
-    fprintf(stderr,"%s: %s, %s\n", argv[0], argv[2], strerror(errno));
+  if (close(src) == -1 || close(dst) == -1) {
+    return -1;
   }
 
-  exit(EXIT_SUCCESS);
+  return 0;
 }

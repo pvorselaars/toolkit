@@ -39,7 +39,7 @@ kernel/linux/.config: kernel/$(ARCH).config
 kernel/linux/arch/x86/boot/bzImage: kernel/linux/ kernel/linux/.config etc/initramfs $(BINARIES) etc/rc
 	$(MAKE) -j4 -C $<
 
-etc/initramfs: ${BINARIES}
+etc/initramfs: tools
 	echo dir /proc 755 0 0 > $@
 	echo dir /dev 755 0 0 >> $@
 	echo nod /dev/console 644 0 0 c 5 1 >> $@
@@ -51,9 +51,11 @@ etc/initramfs: ${BINARIES}
 	echo file /etc/rc ../../etc/rc 711 0 0 >> $@
 	echo slink /init /bin/init 770 0 0 >> $@
 
-${BUILD_DIR}/%: $(SOURCE_DIR)/%.c
+tools: ${BINARIES}
+
+${BUILD_DIR}/%: $(SOURCE_DIR)/%.c $(SOURCE_DIR)/syscall.S $(SOURCE_DIR)/crt.S
 	@mkdir -p bin
-	$(CC) --static -g $^ -o $@
+	$(CC) -static -nostdlib -g $^ -o $@
 
 proper:
 	make -C kernel/linux mrproper

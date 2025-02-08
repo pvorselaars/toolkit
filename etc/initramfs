@@ -6,7 +6,6 @@ file /bin/cat ../../bin/cat 771 0 0
 file /bin/cp ../../bin/cp 771 0 0
 file /bin/echo ../../bin/echo 771 0 0
 file /bin/init ../../bin/init 771 0 0
-file /bin/ls ../../bin/ls 771 0 0
 file /bin/mount ../../bin/mount 771 0 0
 file /bin/sh ../../bin/sh 771 0 0
 dir /etc 755 0 0

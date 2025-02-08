@@ -6,7 +6,7 @@ void main()
 
 	// fork and run shell with startup command in /etc/rc
 	if (fork() == 0) {
-		char *argv[3] = { "/bin/sh", "/etc/rc", NULL };
+		char *argv[] = { "/bin/sh", "/etc/rc", NULL };
 		char *env[] = { "PWD=/", "HOME=/", NULL };
 		execve(argv[0], argv, env);
 	}
