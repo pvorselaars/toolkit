@@ -36,9 +36,6 @@ The build process using the Makefile has the following dependencies:
 
 * POSIX headers
 * make
-* tar
-* wget
-* xz
 * gcc
   
 Additionally the build process for the kernel requires:
@@ -48,6 +45,9 @@ Additionally the build process for the kernel requires:
 * bash
 * flex
 * bison
+* tar
+* wget
+* xz
 
 # Acknowledgements
 
