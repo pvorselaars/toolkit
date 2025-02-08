@@ -42,10 +42,19 @@ int main(int argc, char *argv[])
 
 		tokenize(tokens, command, " ");
 		if(fork() == 0) {
-			execve(command, tokens, 0);
-			return -1;
+			int e = execve(command, tokens, 0);
+
+			write(2, argv[0], 7);
+
+			if (e == -2) {
+				write(2, ": no such file\n", 16);
+			} else {
+				write(2, ": error\n", 8);
+			}
+
+		} else {
+			waitid(P_ALL, 0, 0, WEXITED);
 		}
-		waitid(P_ALL, 0, 0, WEXITED);
 	}
 
 	return 0;
