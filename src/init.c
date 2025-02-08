@@ -5,13 +5,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#ifndef TOOLKIT_VERSION
-#define TOOLKIT_VERSION "unknown"
-#endif
-
 void main()
 {
-	printf("Toolkit (%s)\n", TOOLKIT_VERSION);	// TODO: better name and versioning
 
 	pid_t pid;
 
