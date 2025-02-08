@@ -15,7 +15,7 @@ See the Makefile. Basically, kernel sources are downloaded, verified and built
 with a minimal configuration (make tinyconfig). This should, in theory, switch 
 off most non essential features in the kernel resulting in the smallest 
 possible kernel. Necessary features are switched on explicitly with an 
-architecture specific config file under linux/. This produces a small compressed 
+architecture specific config file under kernel/. This produces a small compressed 
 Linux kernel image (~2MB).
 
 The tool source files are compiled as static ELF binaries and placed in a root 
@@ -26,19 +26,19 @@ root filesystem by the kernel during boot.
 The kernel then runs /init as PID 1. Init forks and execs /bin/sh. This shell
 is able to take user input and will attempt to exec it.
 
-Testing is done on a virtualized system using QEMU. QEMU has a built in 
-bootloader which can be provided with the compressed Linux kernel and initramfs 
-image.
+Testing is done on a virtualized system using QEMU. The kernel is compiled with 
+EFI_STUB. This adds a PE header to the kernel which allows it to be loaded directly
+by UEFI compliant firmware negating the need for a separate bootloader.
 
 # Dependencies
 
 The build process using the Makefile has the following dependencies:
 
+* POSIX headers
 * make
 * tar
+* wget
 * xz
-* flex
-* bison
 * gcc
   
 Additionally the build process for the kernel requires:
@@ -46,6 +46,8 @@ Additionally the build process for the kernel requires:
 * Linux headers
 * ELF headers
 * bash
+* flex
+* bison
 
 # Acknowledgements
 
