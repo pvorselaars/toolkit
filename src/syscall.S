@@ -7,6 +7,7 @@
 .global fork
 .global execve
 .global exit
+.global getdents
 .global mount
 .global waitid
 .global fstatat
@@ -43,6 +44,11 @@ ret
 
 exit:
 mov rax, 60
+syscall
+ret
+
+getdents:
+mov rax, 78
 syscall
 ret
 
