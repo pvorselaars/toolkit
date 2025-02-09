@@ -46,7 +46,6 @@ ret
 exit:
 mov rax, 60
 syscall
-ret
 
 getdents:
 mov rax, 78

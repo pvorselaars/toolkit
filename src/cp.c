@@ -1,44 +1,38 @@
+#include <bits/errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-int main(int argc, char* argv[]){
+int main(int argc, char *argv[])
+{
 
-  int src, dst;
-  struct stat fs;
-  ssize_t n;
+	int src, dst, e;
+	struct stat fs;
+	ssize_t n;
 
-  char buffer[1024];
+	char buffer[1024];
 
-  if (argc != 3) {
-    return -1;
-  }
+	if (argc != 3) {
+		return -EINVAL;
+	}
 
-  src = open(argv[1], O_RDONLY);
+	if ((src = open(argv[1], O_RDONLY)) < 0) {
+		return src;
+	}
 
-  if (src == -1){
-    return -1;
-  }
+	if ((e = fstatat(src, 0, &fs, AT_EMPTY_PATH)) < 0) {
+		return e;
+	}
 
-  if(fstatat(src, 0, &fs, AT_EMPTY_PATH) == -1){
-    return -1;
-  }
+	if ((dst = open(argv[2], O_CREAT | O_WRONLY | O_TRUNC, fs.st_mode)) < 0) {
+		return dst;
+	}
 
-  dst = open(argv[2], O_CREAT | O_WRONLY | O_TRUNC, fs.st_mode);
+	while ((n = read(src, buffer, 1024)) > 0) {
+		if (write(dst, buffer, n) != n) {
+			return n;
+		}
+	}
 
-  if (dst == -1){
-    return -1;
-  }
-
-  while ((n = read(src, buffer, 1024)) > 0) {
-    if (write(dst, buffer, n) != n){
-      return -1;
-    }
-  }
-
-  if (close(src) == -1 || close(dst) == -1) {
-    return -1;
-  }
-
-  return 0;
+	return n;
 }
