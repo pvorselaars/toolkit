@@ -55,7 +55,7 @@ tools: ${BINARIES}
 
 ${BUILD_DIR}/%: $(SOURCE_DIR)/%.c $(SOURCE_DIR)/syscall.S $(SOURCE_DIR)/crt.S
 	@mkdir -p bin
-	$(CC) -static -nostdlib -g $^ -o $@
+	$(CC) -static -Iinclude -nostdlib -g $^ -o $@
 
 proper:
 	make -C kernel/linux mrproper

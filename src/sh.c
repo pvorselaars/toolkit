@@ -1,8 +1,7 @@
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys.h>
 #include <sys/wait.h>
-
-int execveat(int dirfd, const char *pathname, char *argv[], char *envp[], int flags);
 
 void tokenize(char **tokens, char string[], char delimiters[])
 {
