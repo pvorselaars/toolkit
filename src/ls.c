@@ -43,13 +43,13 @@ int main(int argc, char *argv[], char *envp[])
                 while(de->d_name[l++] != 0);
 
                 write(1, de->d_name, l);
-                write(1, "\n", 1);
+                write(1, " ", 1);
 
                 p += de->d_reclen;
             }
             
         }
-
+        write(1, "\n", 1);
     }
 
     return 0;
