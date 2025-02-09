@@ -39,7 +39,7 @@ kernel/linux/.config: kernel/$(ARCH).config
 kernel/linux/arch/x86/boot/bzImage: kernel/linux/ kernel/linux/.config etc/initramfs $(BINARIES) etc/rc
 	$(MAKE) -j4 -C $<
 
-etc/initramfs: tools
+etc/initramfs:
 	echo dir /proc 755 0 0 > $@
 	echo dir /dev 755 0 0 >> $@
 	echo nod /dev/console 644 0 0 c 5 1 >> $@

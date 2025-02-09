@@ -11,6 +11,7 @@
 .global mount
 .global waitid
 .global fstatat
+.global execveat
 
 read:
 mov rax, 0
@@ -65,6 +66,12 @@ ret
 
 fstatat:
 mov rax, 262
+mov r10, rcx
+syscall
+ret
+
+execveat:
+mov rax, 322
 mov r10, rcx
 syscall
 ret
