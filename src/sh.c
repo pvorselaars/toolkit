@@ -92,7 +92,8 @@ int main(int argc, char *argv[], char *envp[])
 	for (;;) {
 		write(1, "# ", 2);
 
-		count = read(0, command, sizeof(command));
+		while ((count = read(0, command, sizeof(command))) < 1);
+
 		command[count - 1] = 0;
 
 		tokenize(tokens, command, " ");
